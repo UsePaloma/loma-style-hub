@@ -34,6 +34,19 @@ export type OrderStatus =
   | "Enviado"
   | "Concluído";
 
+export type Delivery = "Entrega" | "Retirada";
+
+export const SIZES = ["PP", "P", "M", "G", "GG"] as const;
+
+export type Customer = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  passwordHash: string;
+};
+
 export type Order = {
   id: string;
   customer: string;
@@ -47,9 +60,13 @@ export type Order = {
   status: OrderStatus;
   origin: "Site" | "WhatsApp";
   createdAt: string;
+  customerId?: string;
+  delivery?: Delivery;
+  size?: string;
 };
 
 export type Badge = { icon: string; title: string; subtitle: string };
+
 
 export type Settings = {
   topBar: string;
