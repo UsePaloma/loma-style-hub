@@ -202,29 +202,59 @@ const defaultOrders: Order[] = [
   },
 ];
 
+const digits = (v: string) => v.replace(/\D/g, "");
+
+const hashPassword = (password: string) => {
+  let h = 5381;
+  for (let i = 0; i < password.length; i++) h = (h * 33) ^ password.charCodeAt(i);
+  return `h${(h >>> 0).toString(36)}`;
+};
+
 type StoreValue = {
   settings: Settings;
   products: Product[];
   orders: Order[];
+  customers: Customer[];
+  currentCustomer: Customer | null;
+  myOrders: Order[];
   hydrated: boolean;
   updateSettings: (patch: Partial<Settings>) => void;
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   addOrder: (order: Omit<Order, "id" | "createdAt">) => Order;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateMyOrder: (id: string, patch: Pick<Order, "address" | "delivery" | "size">) => boolean;
   deleteOrder: (id: string) => void;
+  registerCustomer: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    password: string;
+  }) => { ok: boolean; error?: string };
+  loginCustomer: (email: string, password: string) => { ok: boolean; error?: string };
+  logoutCustomer: () => void;
+  updateCustomer: (patch: Partial<Omit<Customer, "id" | "passwordHash">>) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
 const KEY = "useloma-store-v1";
+const SESSION_KEY = "useloma-customer-session";
 
-type Persisted = { settings: Settings; products: Product[]; orders: Order[] };
+type Persisted = {
+  settings: Settings;
+  products: Product[];
+  orders: Order[];
+  customers: Customer[];
+};
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -235,7 +265,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (parsed.settings) setSettings({ ...defaultSettings, ...parsed.settings });
         if (parsed.products) setProducts(parsed.products);
         if (parsed.orders) setOrders(parsed.orders);
+        if (parsed.customers) setCustomers(parsed.customers);
       }
+      setSessionId(localStorage.getItem(SESSION_KEY));
     } catch {
       /* ignore corrupted storage */
     }
@@ -244,8 +276,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(KEY, JSON.stringify({ settings, products, orders }));
-  }, [settings, products, orders, hydrated]);
+    localStorage.setItem(KEY, JSON.stringify({ settings, products, orders, customers }));
+  }, [settings, products, orders, customers, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (sessionId) localStorage.setItem(SESSION_KEY, sessionId);
+    else localStorage.removeItem(SESSION_KEY);
+  }, [sessionId, hydrated]);
+
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((s) => ({ ...s, ...patch }));
