@@ -320,32 +320,123 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrders((list) => list.filter((o) => o.id !== id));
   }, []);
 
+  const currentCustomer = useMemo(
+    () => customers.find((c) => c.id === sessionId) ?? null,
+    [customers, sessionId],
+  );
+
+  const myOrders = useMemo(() => {
+    if (!currentCustomer) return [];
+    const phone = digits(currentCustomer.phone);
+    return orders.filter(
+      (o) =>
+        o.customerId === currentCustomer.id ||
+        (!o.customerId && phone.length >= 8 && digits(o.phone) === phone),
+    );
+  }, [orders, currentCustomer]);
+
+  const registerCustomer = useCallback<StoreValue["registerCustomer"]>(
+    ({ name, email, phone, address, password }) => {
+      const mail = email.trim().toLowerCase();
+      if (customers.some((c) => c.email === mail))
+        return { ok: false, error: "Este e-mail já possui uma conta." };
+      const customer: Customer = {
+        id: `CL${Date.now().toString(36)}`,
+        name: name.trim(),
+        email: mail,
+        phone: phone.trim(),
+        address: address.trim(),
+        passwordHash: hashPassword(password),
+      };
+      setCustomers((list) => [...list, customer]);
+      setSessionId(customer.id);
+      return { ok: true };
+    },
+    [customers],
+  );
+
+  const loginCustomer = useCallback<StoreValue["loginCustomer"]>(
+    (email, password) => {
+      const mail = email.trim().toLowerCase();
+      const found = customers.find((c) => c.email === mail);
+      if (!found || found.passwordHash !== hashPassword(password))
+        return { ok: false, error: "E-mail ou senha inválidos." };
+      setSessionId(found.id);
+      return { ok: true };
+    },
+    [customers],
+  );
+
+  const logoutCustomer = useCallback(() => setSessionId(null), []);
+
+  const updateCustomer = useCallback<StoreValue["updateCustomer"]>(
+    (patch) => {
+      if (!sessionId) return;
+      setCustomers((list) =>
+        list.map((c) => (c.id === sessionId ? { ...c, ...patch } : c)),
+      );
+    },
+    [sessionId],
+  );
+
+  const updateMyOrder = useCallback<StoreValue["updateMyOrder"]>(
+    (id, patch) => {
+      if (!currentCustomer) return false;
+      const allowed = myOrders.some((o) => o.id === id);
+      if (!allowed) return false;
+      setOrders((list) =>
+        list.map((o) =>
+          o.id === id ? { ...o, ...patch, customerId: currentCustomer.id } : o,
+        ),
+      );
+      return true;
+    },
+    [currentCustomer, myOrders],
+  );
+
   const value = useMemo(
     () => ({
       settings,
       products,
       orders,
+      customers,
+      currentCustomer,
+      myOrders,
       hydrated,
       updateSettings,
       saveProduct,
       deleteProduct,
       addOrder,
       updateOrderStatus,
+      updateMyOrder,
       deleteOrder,
+      registerCustomer,
+      loginCustomer,
+      logoutCustomer,
+      updateCustomer,
     }),
     [
       settings,
       products,
       orders,
+      customers,
+      currentCustomer,
+      myOrders,
       hydrated,
       updateSettings,
       saveProduct,
       deleteProduct,
       addOrder,
       updateOrderStatus,
+      updateMyOrder,
       deleteOrder,
+      registerCustomer,
+      loginCustomer,
+      logoutCustomer,
+      updateCustomer,
     ],
   );
+
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
