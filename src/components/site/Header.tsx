@@ -58,12 +58,21 @@ export function Header() {
             </a>
           </nav>
 
-          <Link
-            to="/admin"
-            className="order-2 inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-xs font-medium tracking-wide text-primary transition-colors hover:bg-primary hover:text-primary-foreground sm:order-3"
-          >
-            <Lock className="h-3.5 w-3.5" /> Área Admin
-          </Link>
+          <div className="order-2 flex items-center gap-2 sm:order-3">
+            <Link
+              to="/conta"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              <User className="h-3.5 w-3.5" /> Área do Cliente
+            </Link>
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-xs font-medium tracking-wide text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+            >
+              <Lock className="h-3.5 w-3.5" /> Área Admin
+            </Link>
+          </div>
+
         </div>
       </div>
     </header>

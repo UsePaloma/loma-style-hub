@@ -34,6 +34,19 @@ export type OrderStatus =
   | "Enviado"
   | "Concluído";
 
+export type Delivery = "Entrega" | "Retirada";
+
+export const SIZES = ["PP", "P", "M", "G", "GG"] as const;
+
+export type Customer = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  passwordHash: string;
+};
+
 export type Order = {
   id: string;
   customer: string;
@@ -47,9 +60,13 @@ export type Order = {
   status: OrderStatus;
   origin: "Site" | "WhatsApp";
   createdAt: string;
+  customerId?: string;
+  delivery?: Delivery;
+  size?: string;
 };
 
 export type Badge = { icon: string; title: string; subtitle: string };
+
 
 export type Settings = {
   topBar: string;
@@ -185,29 +202,59 @@ const defaultOrders: Order[] = [
   },
 ];
 
+const digits = (v: string) => v.replace(/\D/g, "");
+
+const hashPassword = (password: string) => {
+  let h = 5381;
+  for (let i = 0; i < password.length; i++) h = (h * 33) ^ password.charCodeAt(i);
+  return `h${(h >>> 0).toString(36)}`;
+};
+
 type StoreValue = {
   settings: Settings;
   products: Product[];
   orders: Order[];
+  customers: Customer[];
+  currentCustomer: Customer | null;
+  myOrders: Order[];
   hydrated: boolean;
   updateSettings: (patch: Partial<Settings>) => void;
   saveProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   addOrder: (order: Omit<Order, "id" | "createdAt">) => Order;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
+  updateMyOrder: (id: string, patch: Pick<Order, "address" | "delivery" | "size">) => boolean;
   deleteOrder: (id: string) => void;
+  registerCustomer: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    password: string;
+  }) => { ok: boolean; error?: string };
+  loginCustomer: (email: string, password: string) => { ok: boolean; error?: string };
+  logoutCustomer: () => void;
+  updateCustomer: (patch: Partial<Omit<Customer, "id" | "passwordHash">>) => void;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
 const KEY = "useloma-store-v1";
+const SESSION_KEY = "useloma-customer-session";
 
-type Persisted = { settings: Settings; products: Product[]; orders: Order[] };
+type Persisted = {
+  settings: Settings;
+  products: Product[];
+  orders: Order[];
+  customers: Customer[];
+};
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -218,7 +265,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (parsed.settings) setSettings({ ...defaultSettings, ...parsed.settings });
         if (parsed.products) setProducts(parsed.products);
         if (parsed.orders) setOrders(parsed.orders);
+        if (parsed.customers) setCustomers(parsed.customers);
       }
+      setSessionId(localStorage.getItem(SESSION_KEY));
     } catch {
       /* ignore corrupted storage */
     }
@@ -227,8 +276,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(KEY, JSON.stringify({ settings, products, orders }));
-  }, [settings, products, orders, hydrated]);
+    localStorage.setItem(KEY, JSON.stringify({ settings, products, orders, customers }));
+  }, [settings, products, orders, customers, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (sessionId) localStorage.setItem(SESSION_KEY, sessionId);
+    else localStorage.removeItem(SESSION_KEY);
+  }, [sessionId, hydrated]);
+
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((s) => ({ ...s, ...patch }));
@@ -264,32 +320,123 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrders((list) => list.filter((o) => o.id !== id));
   }, []);
 
+  const currentCustomer = useMemo(
+    () => customers.find((c) => c.id === sessionId) ?? null,
+    [customers, sessionId],
+  );
+
+  const myOrders = useMemo(() => {
+    if (!currentCustomer) return [];
+    const phone = digits(currentCustomer.phone);
+    return orders.filter(
+      (o) =>
+        o.customerId === currentCustomer.id ||
+        (!o.customerId && phone.length >= 8 && digits(o.phone) === phone),
+    );
+  }, [orders, currentCustomer]);
+
+  const registerCustomer = useCallback<StoreValue["registerCustomer"]>(
+    ({ name, email, phone, address, password }) => {
+      const mail = email.trim().toLowerCase();
+      if (customers.some((c) => c.email === mail))
+        return { ok: false, error: "Este e-mail já possui uma conta." };
+      const customer: Customer = {
+        id: `CL${Date.now().toString(36)}`,
+        name: name.trim(),
+        email: mail,
+        phone: phone.trim(),
+        address: address.trim(),
+        passwordHash: hashPassword(password),
+      };
+      setCustomers((list) => [...list, customer]);
+      setSessionId(customer.id);
+      return { ok: true };
+    },
+    [customers],
+  );
+
+  const loginCustomer = useCallback<StoreValue["loginCustomer"]>(
+    (email, password) => {
+      const mail = email.trim().toLowerCase();
+      const found = customers.find((c) => c.email === mail);
+      if (!found || found.passwordHash !== hashPassword(password))
+        return { ok: false, error: "E-mail ou senha inválidos." };
+      setSessionId(found.id);
+      return { ok: true };
+    },
+    [customers],
+  );
+
+  const logoutCustomer = useCallback(() => setSessionId(null), []);
+
+  const updateCustomer = useCallback<StoreValue["updateCustomer"]>(
+    (patch) => {
+      if (!sessionId) return;
+      setCustomers((list) =>
+        list.map((c) => (c.id === sessionId ? { ...c, ...patch } : c)),
+      );
+    },
+    [sessionId],
+  );
+
+  const updateMyOrder = useCallback<StoreValue["updateMyOrder"]>(
+    (id, patch) => {
+      if (!currentCustomer) return false;
+      const allowed = myOrders.some((o) => o.id === id);
+      if (!allowed) return false;
+      setOrders((list) =>
+        list.map((o) =>
+          o.id === id ? { ...o, ...patch, customerId: currentCustomer.id } : o,
+        ),
+      );
+      return true;
+    },
+    [currentCustomer, myOrders],
+  );
+
   const value = useMemo(
     () => ({
       settings,
       products,
       orders,
+      customers,
+      currentCustomer,
+      myOrders,
       hydrated,
       updateSettings,
       saveProduct,
       deleteProduct,
       addOrder,
       updateOrderStatus,
+      updateMyOrder,
       deleteOrder,
+      registerCustomer,
+      loginCustomer,
+      logoutCustomer,
+      updateCustomer,
     }),
     [
       settings,
       products,
       orders,
+      customers,
+      currentCustomer,
+      myOrders,
       hydrated,
       updateSettings,
       saveProduct,
       deleteProduct,
       addOrder,
       updateOrderStatus,
+      updateMyOrder,
       deleteOrder,
+      registerCustomer,
+      loginCustomer,
+      logoutCustomer,
+      updateCustomer,
     ],
   );
+
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
