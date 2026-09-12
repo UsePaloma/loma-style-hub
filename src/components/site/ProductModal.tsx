@@ -21,18 +21,32 @@ export function ProductModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { settings, addOrder } = useStore();
+  const { settings, addOrder, currentCustomer } = useStore();
   const [mode, setMode] = useState<Mode>("grupo");
-  const [checkout, setCheckout] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", payment: "PIX" });
+  const [checkout, setCheckout] = useState<null | "site" | "whatsapp">(null);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    payment: "PIX",
+    delivery: "Entrega" as Delivery,
+    size: "",
+  });
 
   useEffect(() => {
     if (open) {
       setMode("grupo");
-      setCheckout(false);
-      setForm({ name: "", phone: "", address: "", payment: "PIX" });
+      setCheckout(null);
+      setForm({
+        name: currentCustomer?.name ?? "",
+        phone: currentCustomer?.phone ?? "",
+        address: currentCustomer?.address ?? "",
+        payment: "PIX",
+        delivery: "Entrega",
+        size: "",
+      });
     }
-  }, [open, product?.id]);
+  }, [open, product?.id, currentCustomer]);
 
   if (!product) return null;
 
