@@ -211,19 +211,27 @@ export function ProductModal({
 
             {!checkout ? (
               <div className="space-y-2">
-                <Button className="w-full rounded-xl" onClick={() => setCheckout(true)}>
+                <Button className="w-full rounded-xl" onClick={() => setCheckout("site")}>
                   {mode === "grupo"
                     ? `Participar deste grupo (${brl(product.groupPrice)})`
                     : `Comprar agora (${brl(product.price)})`}
                 </Button>
-                <a href={waLink(settings.whatsapp, waMessage)} target="_blank" rel="noreferrer">
-                  <Button variant="outline" className="w-full rounded-xl">
-                    <MessageCircle className="mr-2 h-4 w-4" /> Finalizar pelo WhatsApp
-                  </Button>
-                </a>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl"
+                  onClick={() => setCheckout("whatsapp")}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" /> Finalizar pelo WhatsApp
+                </Button>
               </div>
             ) : (
-              <form onSubmit={submitSite} className="animate-fade-up space-y-3">
+              <form onSubmit={submit} className="animate-fade-up space-y-3">
+                {checkout === "whatsapp" && (
+                  <p className="rounded-xl bg-card px-3 py-2 text-xs text-muted-foreground">
+                    Confirme seus dados abaixo. Vamos abrir o WhatsApp com o resumo completo do
+                    pedido ♡
+                  </p>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="nome">Nome completo</Label>
                   <Input
