@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { brl, useStore, waLink, type Product } from "@/lib/store";
+import { SIZES, brl, useStore, waLink, type Delivery, type Product } from "@/lib/store";
 
 type Mode = "individual" | "grupo";
 
