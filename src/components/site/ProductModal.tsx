@@ -54,12 +54,6 @@ export function ProductModal({
   const missing = Math.max(product.minPeople - product.currentPeople, 0);
   const progress = Math.min(100, (product.currentPeople / product.minPeople) * 100);
 
-  const waMessage = `Olá! Quero pedir o produto ${product.name}. Tipo de Compra: ${
-    mode === "grupo" ? `Grupo ${brl(product.groupPrice)}` : `Individual ${brl(product.price)}`
-  }. Grupo ID: #${product.groupCode} (${
-    missing > 0 ? `Falta${missing > 1 ? "m" : ""} ${missing} pessoa${missing > 1 ? "s" : ""}` : "cota completa"
-  }). Por favor, separe minha peça! ♡`;
-
   const inviteMessage = `Oi! Estou montando um grupo na USE LOMA para comprar "${product.name}" por ${brl(
     product.groupPrice,
   )} (em vez de ${brl(product.price)}). Grupo #${product.groupCode} · ${
