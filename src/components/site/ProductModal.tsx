@@ -320,13 +320,20 @@ export function ProductModal({
                   </div>
                 </div>
                 <Button type="submit" className="w-full rounded-xl">
-                  Finalizar pedido · {brl(total)}
+                  {checkout === "whatsapp" ? (
+                    <>
+                      <MessageCircle className="mr-2 h-4 w-4" /> Enviar pedido no WhatsApp ·{" "}
+                      {brl(total)}
+                    </>
+                  ) : (
+                    <>Finalizar pedido · {brl(total)}</>
+                  )}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   className="w-full rounded-xl"
-                  onClick={() => setCheckout(false)}
+                  onClick={() => setCheckout(null)}
                 >
                   Voltar
                 </Button>
