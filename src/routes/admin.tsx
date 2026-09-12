@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { deleteMedia, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ORDER_STATUSES,
@@ -336,6 +337,7 @@ function ProductsTab() {
               textarea
             />
             <Field label="URL da imagem" value={draft.image} onChange={(v) => set({ image: v })} />
+            <MediaField media={draft.media} onChange={(media) => set({ media })} />
             <div className="grid grid-cols-2 gap-3">
               <Field
                 label="Preço individual"
@@ -389,6 +391,60 @@ function ProductsTab() {
           </p>
         )}
       </Card>
+    </div>
+  );
+}
+
+function MediaField({
+  media,
+  onChange,
+}: {
+  media?: MediaRef[];
+  onChange: (media: MediaRef[]) => void;
+}) {
+  const list = media ?? [];
+  const urls = useMediaUrls(list);
+
+  return (
+    <div className="space-y-2">
+      <Label>Fotos e vídeos do produto</Label>
+      <Input
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        onChange={async (e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (!files.length) return;
+          const refs = await Promise.all(files.map((f) => saveMedia(f)));
+          onChange([...list, ...refs]);
+          toast.success("Mídia adicionada");
+        }}
+      />
+      {list.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {list.map((m) => (
+            <div key={m.id} className="relative overflow-hidden rounded-lg bg-background">
+              {m.kind === "video" ? (
+                <video src={urls[m.id]} className="h-20 w-full object-cover" muted />
+              ) : (
+                <img src={urls[m.id]} alt={m.name} className="h-20 w-full object-cover" />
+              )}
+              <button
+                type="button"
+                aria-label={`Remover ${m.name}`}
+                className="absolute top-1 right-1 rounded-md bg-background/90 p-1"
+                onClick={async () => {
+                  await deleteMedia(m.id);
+                  onChange(list.filter((x) => x.id !== m.id));
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
