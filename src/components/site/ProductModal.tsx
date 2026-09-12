@@ -251,15 +251,55 @@ export function ProductModal({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="end">Endereço de entrega</Label>
-                  <Textarea
-                    id="end"
-                    required
-                    rows={2}
-                    value={form.address}
-                    onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  />
+                  <Label>Tamanho</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {SIZES.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm({ ...form, size: form.size === s ? "" : s })}
+                        className={`min-w-12 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                          form.size === s
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Forma de recebimento</Label>
+                  <div className="flex gap-2">
+                    {(["Entrega", "Retirada"] as const).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setForm({ ...form, delivery: d })}
+                        className={`flex-1 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                          form.delivery === d
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border"
+                        }`}
+                      >
+                        {d === "Entrega" ? "Envio/Entrega" : "Retirada"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {form.delivery === "Entrega" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="end">Endereço de entrega</Label>
+                    <Textarea
+                      id="end"
+                      required
+                      rows={2}
+                      value={form.address}
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label>Forma de pagamento</Label>
                   <div className="flex gap-2">
