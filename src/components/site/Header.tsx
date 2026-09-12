@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Heart, Instagram, Lock, MessageCircle } from "lucide-react";
+import { Heart, Instagram, Lock, MessageCircle, User } from "lucide-react";
 
 import { useStore, waLink } from "@/lib/store";
 
