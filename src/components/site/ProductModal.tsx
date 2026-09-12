@@ -60,21 +60,54 @@ export function ProductModal({
     missing > 0 ? `faltam ${missing}` : "cota completa"
   }. Bora comigo? ♡`;
 
-  const submitSite = (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    addOrder({
+    const channel = checkout === "whatsapp" ? "WhatsApp" : "Site";
+    const order = addOrder({
       customer: form.name,
       phone: form.phone,
-      address: form.address,
+      address: form.delivery === "Entrega" ? form.address : "",
       payment: form.payment,
       productId: product.id,
       productName: product.name,
       type: mode === "grupo" ? "Grupo" : "Individual",
       total,
       status: mode === "grupo" && missing > 0 ? "Aguardando Cota do Grupo" : "Aguardando Pagamento",
-      origin: "Site",
+      origin: channel,
+      delivery: form.delivery,
+      ...(form.size ? { size: form.size } : {}),
+      ...(currentCustomer ? { customerId: currentCustomer.id } : {}),
     });
-    toast.success("Pedido registrado! Em breve entramos em contato ♡");
+
+    if (channel === "WhatsApp") {
+      const lines = [
+        "*Novo pedido · USE LOMA ♡*",
+        `Pedido: #${order.id}`,
+        `Cliente: ${form.name}`,
+        `Telefone: ${form.phone}`,
+        `Produto: ${product.name}`,
+        `Tipo de compra: ${mode === "grupo" ? "Grupo" : "Individual"}`,
+      ];
+      if (mode === "grupo") {
+        lines.push(
+          `Grupo: #${product.groupCode} (${
+            missing > 0
+              ? `falta${missing > 1 ? "m" : ""} ${missing} pessoa${missing > 1 ? "s" : ""}`
+              : "cota completa"
+          })`,
+        );
+      }
+      if (form.size) lines.push(`Tamanho: ${form.size}`);
+      lines.push(`Recebimento: ${form.delivery === "Entrega" ? "Envio/Entrega" : "Retirada"}`);
+      if (form.delivery === "Entrega") lines.push(`Endereço: ${form.address}`);
+      lines.push(`Pagamento: ${form.payment}`);
+      lines.push(`Total: ${brl(total)}`);
+      lines.push("Por favor, confirme meu pedido ♡");
+      window.open(waLink(settings.whatsapp, lines.join("\n")), "_blank", "noopener");
+      toast.success("Pedido registrado! Continue a conversa no WhatsApp ♡");
+    } else {
+      toast.success("Pedido registrado! Em breve entramos em contato ♡");
+    }
     onClose();
   };
 
