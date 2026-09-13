@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useMediaUrls } from "@/lib/media";
 import { brl, type Product } from "@/lib/store";
 
 export function ProductCard({
