@@ -74,6 +74,25 @@ export function ProductModal({
     missing > 0 ? `faltam ${missing}` : "cota completa"
   }. Bora comigo? ♡`;
 
+  const submitAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    const res =
+      authMode === "login"
+        ? loginCustomer(auth.email, auth.password)
+        : registerCustomer({
+            name: auth.name,
+            email: auth.email,
+            phone: auth.phone,
+            address: auth.address,
+            password: auth.password,
+          });
+    if (!res.ok) {
+      toast.error(res.error ?? "Não foi possível continuar.");
+      return;
+    }
+    toast.success(authMode === "login" ? "Bem-vinda de volta ♡" : "Conta criada ♡");
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const channel = checkout === "whatsapp" ? "WhatsApp" : "Site";
