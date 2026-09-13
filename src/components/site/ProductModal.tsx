@@ -33,11 +33,14 @@ export function ProductModal({
     delivery: "Entrega" as Delivery,
     size: "",
   });
+  const [active, setActive] = useState(0);
+  const urls = useMediaUrls(product?.media);
 
   useEffect(() => {
     if (open) {
       setMode("grupo");
       setCheckout(null);
+      setActive(0);
       setForm({
         name: currentCustomer?.name ?? "",
         phone: currentCustomer?.phone ?? "",
