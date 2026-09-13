@@ -123,12 +123,62 @@ export function ProductModal({
         </DialogHeader>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            className="h-72 w-full rounded-2xl object-cover md:h-full"
-          />
+          <div className="space-y-3">
+            {(() => {
+              const items = (product.media ?? [])
+                .filter((m) => urls[m.id])
+                .map((m) => ({ key: m.id, kind: m.kind, src: urls[m.id] }));
+              if (items.length === 0)
+                items.push({ key: "cover", kind: "image" as const, src: product.image });
+              const current = items[Math.min(active, items.length - 1)];
+              return (
+                <>
+                  {current.kind === "video" ? (
+                    <video
+                      src={current.src}
+                      controls
+                      className="h-72 w-full rounded-2xl bg-card object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={current.src}
+                      alt={product.name}
+                      loading="lazy"
+                      className="h-72 w-full rounded-2xl object-cover"
+                    />
+                  )}
+                  {items.length > 1 && (
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((it, i) => (
+                        <button
+                          key={it.key}
+                          type="button"
+                          onClick={() => setActive(i)}
+                          className={`h-16 w-16 overflow-hidden rounded-xl border transition-colors ${
+                            i === Math.min(active, items.length - 1)
+                              ? "border-primary"
+                              : "border-border"
+                          }`}
+                        >
+                          {it.kind === "video" ? (
+                            <video src={it.src} className="h-full w-full object-cover" muted />
+                          ) : (
+                            <img
+                              src={it.src}
+                              alt=""
+                              loading="lazy"
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+
 
           <div className="space-y-4">
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
