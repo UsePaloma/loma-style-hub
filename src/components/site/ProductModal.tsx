@@ -118,9 +118,7 @@ export function ProductModal({
       lines.push(`Total: ${brl(total)}`);
       lines.push("Por favor, confirme meu pedido ♡");
       window.open(waLink(settings.whatsapp, lines.join("\n")), "_blank", "noopener");
-      toast.success("Pedido registrado! Continue a conversa no WhatsApp ♡");
-    } else {
-      toast.success("Pedido registrado! Em breve entramos em contato ♡");
+      toast.success("Pedido salvo na sua conta e enviado no WhatsApp ♡");
     }
     onClose();
   };
