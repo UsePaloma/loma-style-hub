@@ -337,7 +337,7 @@ function ProductsTab() {
               textarea
             />
             <Field label="URL da imagem" value={draft.image} onChange={(v) => set({ image: v })} />
-            <MediaField media={draft.media} onChange={(media) => set({ media })} />
+            <MediaField media={draft.media ?? []} onChange={(media) => set({ media })} />
             <div className="grid grid-cols-2 gap-3">
               <Field
                 label="Preço individual"
