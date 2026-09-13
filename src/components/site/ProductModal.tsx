@@ -93,7 +93,7 @@ export function ProductModal({
       ...(currentCustomer ? { customerId: currentCustomer.id } : {}),
     });
 
-    if (channel === "WhatsApp") {
+    {
       const lines = [
         "*Novo pedido · USE LOMA ♡*",
         `Pedido: #${order.id}`,
