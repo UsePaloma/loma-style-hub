@@ -22,7 +22,15 @@ export function ProductModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { settings, addOrder, currentCustomer } = useStore();
+  const { settings, addOrder, currentCustomer, loginCustomer, registerCustomer } = useStore();
+  const [authMode, setAuthMode] = useState<"login" | "cadastro">("login");
+  const [auth, setAuth] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    password: "",
+  });
   const [mode, setMode] = useState<Mode>("grupo");
   const [checkout, setCheckout] = useState<null | "site" | "whatsapp">(null);
   const [form, setForm] = useState({
