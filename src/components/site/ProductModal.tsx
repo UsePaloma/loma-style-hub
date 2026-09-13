@@ -22,7 +22,15 @@ export function ProductModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { settings, addOrder, currentCustomer } = useStore();
+  const { settings, addOrder, currentCustomer, loginCustomer, registerCustomer } = useStore();
+  const [authMode, setAuthMode] = useState<"login" | "cadastro">("login");
+  const [auth, setAuth] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    password: "",
+  });
   const [mode, setMode] = useState<Mode>("grupo");
   const [checkout, setCheckout] = useState<null | "site" | "whatsapp">(null);
   const [form, setForm] = useState({
@@ -41,6 +49,8 @@ export function ProductModal({
       setMode("grupo");
       setCheckout(null);
       setActive(0);
+      setAuthMode("login");
+      setAuth({ name: "", email: "", phone: "", address: "", password: "" });
       setForm({
         name: currentCustomer?.name ?? "",
         phone: currentCustomer?.phone ?? "",
@@ -50,7 +60,18 @@ export function ProductModal({
         size: "",
       });
     }
-  }, [open, product?.id, currentCustomer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id]);
+
+  useEffect(() => {
+    if (!currentCustomer) return;
+    setForm((f) => ({
+      ...f,
+      name: f.name || currentCustomer.name,
+      phone: f.phone || currentCustomer.phone,
+      address: f.address || currentCustomer.address,
+    }));
+  }, [currentCustomer]);
 
   if (!product) return null;
 
@@ -63,6 +84,25 @@ export function ProductModal({
   )} (em vez de ${brl(product.price)}). Grupo #${product.groupCode} · ${
     missing > 0 ? `faltam ${missing}` : "cota completa"
   }. Bora comigo? ♡`;
+
+  const submitAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    const res =
+      authMode === "login"
+        ? loginCustomer(auth.email, auth.password)
+        : registerCustomer({
+            name: auth.name,
+            email: auth.email,
+            phone: auth.phone,
+            address: auth.address,
+            password: auth.password,
+          });
+    if (!res.ok) {
+      toast.error(res.error ?? "Não foi possível continuar.");
+      return;
+    }
+    toast.success(authMode === "login" ? "Bem-vinda de volta ♡" : "Conta criada ♡");
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +123,7 @@ export function ProductModal({
       ...(currentCustomer ? { customerId: currentCustomer.id } : {}),
     });
 
-    if (channel === "WhatsApp") {
+    {
       const lines = [
         "*Novo pedido · USE LOMA ♡*",
         `Pedido: #${order.id}`,
@@ -108,9 +148,7 @@ export function ProductModal({
       lines.push(`Total: ${brl(total)}`);
       lines.push("Por favor, confirme meu pedido ♡");
       window.open(waLink(settings.whatsapp, lines.join("\n")), "_blank", "noopener");
-      toast.success("Pedido registrado! Continue a conversa no WhatsApp ♡");
-    } else {
-      toast.success("Pedido registrado! Em breve entramos em contato ♡");
+      toast.success("Pedido salvo na sua conta e enviado no WhatsApp ♡");
     }
     onClose();
   };
@@ -278,6 +316,91 @@ export function ProductModal({
                   <MessageCircle className="mr-2 h-4 w-4" /> Finalizar pelo WhatsApp
                 </Button>
               </div>
+            ) : !currentCustomer ? (
+              <form onSubmit={submitAuth} className="animate-fade-up space-y-3">
+                <p className="rounded-xl bg-card px-3 py-2 text-xs text-muted-foreground">
+                  Para finalizar o pedido, entre na sua conta ou crie uma. Assim o pedido fica
+                  salvo na sua Área do Cliente ♡
+                </p>
+                <div className="flex gap-2">
+                  {(["login", "cadastro"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setAuthMode(m)}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                        authMode === m
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border"
+                      }`}
+                    >
+                      {m === "login" ? "Já tenho conta" : "Criar conta"}
+                    </button>
+                  ))}
+                </div>
+                {authMode === "cadastro" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-nome">Nome completo</Label>
+                      <Input
+                        id="ac-nome"
+                        required
+                        value={auth.name}
+                        onChange={(e) => setAuth({ ...auth, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-tel">Telefone</Label>
+                      <Input
+                        id="ac-tel"
+                        required
+                        value={auth.phone}
+                        onChange={(e) => setAuth({ ...auth, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-end">Endereço</Label>
+                      <Textarea
+                        id="ac-end"
+                        rows={2}
+                        value={auth.address}
+                        onChange={(e) => setAuth({ ...auth, address: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="ac-mail">E-mail</Label>
+                  <Input
+                    id="ac-mail"
+                    type="email"
+                    required
+                    value={auth.email}
+                    onChange={(e) => setAuth({ ...auth, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ac-senha">Senha</Label>
+                  <Input
+                    id="ac-senha"
+                    type="password"
+                    required
+                    value={auth.password}
+                    onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+                  />
+                </div>
+                <Button type="submit" className="w-full rounded-xl">
+                  {authMode === "login" ? "Entrar e continuar" : "Criar conta e continuar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full rounded-xl"
+                  onClick={() => setCheckout(null)}
+                >
+                  Voltar
+                </Button>
+              </form>
             ) : (
               <form onSubmit={submit} className="animate-fade-up space-y-3">
                 {checkout === "whatsapp" && (
