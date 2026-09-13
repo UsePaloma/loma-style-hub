@@ -20,7 +20,7 @@ export function ProductCard({
     <article className="group animate-fade-up overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-transform duration-300 hover:-translate-y-1">
       <div className="relative overflow-hidden bg-background">
         <img
-          src={product.image}
+          src={cover}
           alt={product.name}
           loading="lazy"
           className="h-80 w-full object-cover transition-transform duration-500 group-hover:scale-105"
