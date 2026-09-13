@@ -49,6 +49,8 @@ export function ProductModal({
       setMode("grupo");
       setCheckout(null);
       setActive(0);
+      setAuthMode("login");
+      setAuth({ name: "", email: "", phone: "", address: "", password: "" });
       setForm({
         name: currentCustomer?.name ?? "",
         phone: currentCustomer?.phone ?? "",
