@@ -286,6 +286,91 @@ export function ProductModal({
                   <MessageCircle className="mr-2 h-4 w-4" /> Finalizar pelo WhatsApp
                 </Button>
               </div>
+            ) : !currentCustomer ? (
+              <form onSubmit={submitAuth} className="animate-fade-up space-y-3">
+                <p className="rounded-xl bg-card px-3 py-2 text-xs text-muted-foreground">
+                  Para finalizar o pedido, entre na sua conta ou crie uma. Assim o pedido fica
+                  salvo na sua Área do Cliente ♡
+                </p>
+                <div className="flex gap-2">
+                  {(["login", "cadastro"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setAuthMode(m)}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                        authMode === m
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border"
+                      }`}
+                    >
+                      {m === "login" ? "Já tenho conta" : "Criar conta"}
+                    </button>
+                  ))}
+                </div>
+                {authMode === "cadastro" && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-nome">Nome completo</Label>
+                      <Input
+                        id="ac-nome"
+                        required
+                        value={auth.name}
+                        onChange={(e) => setAuth({ ...auth, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-tel">Telefone</Label>
+                      <Input
+                        id="ac-tel"
+                        required
+                        value={auth.phone}
+                        onChange={(e) => setAuth({ ...auth, phone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="ac-end">Endereço</Label>
+                      <Textarea
+                        id="ac-end"
+                        rows={2}
+                        value={auth.address}
+                        onChange={(e) => setAuth({ ...auth, address: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="ac-mail">E-mail</Label>
+                  <Input
+                    id="ac-mail"
+                    type="email"
+                    required
+                    value={auth.email}
+                    onChange={(e) => setAuth({ ...auth, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="ac-senha">Senha</Label>
+                  <Input
+                    id="ac-senha"
+                    type="password"
+                    required
+                    value={auth.password}
+                    onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+                  />
+                </div>
+                <Button type="submit" className="w-full rounded-xl">
+                  {authMode === "login" ? "Entrar e continuar" : "Criar conta e continuar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full rounded-xl"
+                  onClick={() => setCheckout(null)}
+                >
+                  Voltar
+                </Button>
+              </form>
             ) : (
               <form onSubmit={submit} className="animate-fade-up space-y-3">
                 {checkout === "whatsapp" && (
