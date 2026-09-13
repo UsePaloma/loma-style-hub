@@ -304,15 +304,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProducts((list) => list.filter((p) => p.id !== id));
   }, []);
 
-  const addOrder = useCallback((order: Omit<Order, "id" | "createdAt">) => {
-    const full: Order = {
-      ...order,
-      id: `PD${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toISOString(),
-    };
-    setOrders((list) => [full, ...list]);
-    return full;
-  }, []);
+  const addOrder = useCallback(
+    (order: Omit<Order, "id" | "createdAt">) => {
+      const phone = digits(order.phone);
+      const matched =
+        order.customerId ??
+        (phone.length >= 8
+          ? customers.find((c) => digits(c.phone) === phone)?.id
+          : undefined) ??
+        sessionId ??
+        undefined;
+      const full: Order = {
+        ...order,
+        ...(matched ? { customerId: matched } : {}),
+        id: `PD${Math.floor(1000 + Math.random() * 9000)}`,
+        createdAt: new Date().toISOString(),
+      };
+      setOrders((list) => [full, ...list]);
+      return full;
+    },
+    [customers, sessionId],
+  );
 
   const updateOrderStatus = useCallback((id: string, status: OrderStatus) => {
     setOrders((list) => list.map((o) => (o.id === id ? { ...o, status } : o)));

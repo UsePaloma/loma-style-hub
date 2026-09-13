@@ -1,6 +1,7 @@
 import { Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useMediaUrls } from "@/lib/media";
 import { brl, type Product } from "@/lib/store";
 
 export function ProductCard({
@@ -11,12 +12,15 @@ export function ProductCard({
   onOpen: (p: Product) => void;
 }) {
   const missing = Math.max(product.minPeople - product.currentPeople, 0);
+  const urls = useMediaUrls(product.media);
+  const firstPhoto = (product.media ?? []).find((m) => m.kind === "image" && urls[m.id]);
+  const cover = firstPhoto ? urls[firstPhoto.id] : product.image;
 
   return (
     <article className="group animate-fade-up overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-transform duration-300 hover:-translate-y-1">
       <div className="relative overflow-hidden bg-background">
         <img
-          src={product.image}
+          src={cover}
           alt={product.name}
           loading="lazy"
           className="h-80 w-full object-cover transition-transform duration-500 group-hover:scale-105"
