@@ -130,7 +130,7 @@ export function ProductModal({
                 .map((m) => ({ key: m.id, kind: m.kind, src: urls[m.id] }));
               if (items.length === 0)
                 items.push({ key: "cover", kind: "image" as const, src: product.image });
-              const current = items[Math.min(active, items.length - 1)];
+              const current = items[Math.min(active, items.length - 1)]!;
               return (
                 <>
                   {current.kind === "video" ? (
