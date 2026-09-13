@@ -60,7 +60,18 @@ export function ProductModal({
         size: "",
       });
     }
-  }, [open, product?.id, currentCustomer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id]);
+
+  useEffect(() => {
+    if (!currentCustomer) return;
+    setForm((f) => ({
+      ...f,
+      name: f.name || currentCustomer.name,
+      phone: f.phone || currentCustomer.phone,
+      address: f.address || currentCustomer.address,
+    }));
+  }, [currentCustomer]);
 
   if (!product) return null;
 
