@@ -1,0 +1,2 @@
+- [x] Galeria de fotos/vídeos no produto público
+- [x] Vincular pedidos do site à conta pelo telefone
