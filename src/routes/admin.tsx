@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { ArrowLeft, Heart, Lock, Plus, Trash2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Heart, Lock, Plus, Save, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -178,96 +178,141 @@ function Field({
   );
 }
 
+function SaveBar({ dirty, onSave, onReset }: { dirty: boolean; onSave: () => void; onReset: () => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <Button className="rounded-xl" onClick={onSave} disabled={!dirty}>
+        <Save className="mr-2 h-4 w-4" /> Salvar alterações
+      </Button>
+      <Button variant="ghost" className="rounded-xl" onClick={onReset} disabled={!dirty}>
+        Descartar
+      </Button>
+      {dirty && <span className="text-xs text-muted-foreground">Alterações não salvas</span>}
+    </div>
+  );
+}
+
 function SiteTab() {
   const { settings, updateSettings } = useStore();
+  const [draft, setDraft] = useState(settings);
+  useEffect(() => setDraft(settings), [settings]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
+  const set = (patch: Partial<typeof settings>) => setDraft((d) => ({ ...d, ...patch }));
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Card title="Barra de avisos & Banner">
-        <Field
-          label="Barra superior de avisos"
-          value={settings.topBar}
-          onChange={(v) => updateSettings({ topBar: v })}
-          textarea
-        />
-        <Field
-          label="Título principal do banner"
-          value={settings.heroTitle}
-          onChange={(v) => updateSettings({ heroTitle: v })}
-        />
-        <Field
-          label="Slogan do banner"
-          value={settings.heroSlogan}
-          onChange={(v) => updateSettings({ heroSlogan: v })}
-          textarea
-        />
-      </Card>
-      <Card title="Contatos e redes">
-        <Field
-          label="WhatsApp do responsável (com DDI, ex: 5511999999999)"
-          value={settings.whatsapp}
-          onChange={(v) => updateSettings({ whatsapp: v })}
-        />
-        <Field
-          label="Usuário do Instagram"
-          value={settings.instagram}
-          onChange={(v) => updateSettings({ instagram: v })}
-        />
-        <Field
-          label="Link do Instagram"
-          value={settings.instagramUrl}
-          onChange={(v) => updateSettings({ instagramUrl: v })}
-        />
-        <Field
-          label="Senha do painel"
-          value={settings.adminPassword}
-          onChange={(v) => updateSettings({ adminPassword: v })}
-        />
-      </Card>
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card title="Barra de avisos & Banner">
+          <Field
+            label="Barra superior de avisos"
+            value={draft.topBar}
+            onChange={(v) => set({ topBar: v })}
+            textarea
+          />
+          <Field
+            label="Título principal do banner"
+            value={draft.heroTitle}
+            onChange={(v) => set({ heroTitle: v })}
+          />
+          <Field
+            label="Slogan do banner"
+            value={draft.heroSlogan}
+            onChange={(v) => set({ heroSlogan: v })}
+            textarea
+          />
+        </Card>
+        <Card title="Contatos e redes">
+          <Field
+            label="WhatsApp do responsável (com DDI, ex: 5511999999999)"
+            value={draft.whatsapp}
+            onChange={(v) => set({ whatsapp: v })}
+          />
+          <Field
+            label="Usuário do Instagram"
+            value={draft.instagram}
+            onChange={(v) => set({ instagram: v })}
+          />
+          <Field
+            label="Link do Instagram"
+            value={draft.instagramUrl}
+            onChange={(v) => set({ instagramUrl: v })}
+          />
+          <Field
+            label="Senha do painel"
+            value={draft.adminPassword}
+            onChange={(v) => set({ adminPassword: v })}
+          />
+        </Card>
+      </div>
+      <SaveBar
+        dirty={dirty}
+        onReset={() => setDraft(settings)}
+        onSave={() => {
+          updateSettings(draft);
+          toast.success("Alterações salvas ♡");
+        }}
+      />
     </div>
   );
 }
 
 function FooterTab() {
   const { settings, updateSettings } = useStore();
+  const [draft, setDraft] = useState(settings);
+  useEffect(() => setDraft(settings), [settings]);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
   const updateBadge = (index: number, patch: Partial<(typeof settings.badges)[number]>) => {
-    const badges = settings.badges.map((b, i) => (i === index ? { ...b, ...patch } : b));
-    updateSettings({ badges });
+    setDraft((d) => ({
+      ...d,
+      badges: d.badges.map((b, i) => (i === index ? { ...b, ...patch } : b)),
+    }));
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Card title="Selos de destaque">
-        {settings.badges.map((badge, i) => (
-          <div key={i} className="space-y-2 rounded-xl bg-background p-4">
-            <div className="grid gap-2 sm:grid-cols-[80px_1fr]">
-              <Field label="Ícone" value={badge.icon} onChange={(v) => updateBadge(i, { icon: v })} />
-              <Field label="Título" value={badge.title} onChange={(v) => updateBadge(i, { title: v })} />
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card title="Selos de destaque">
+          {draft.badges.map((badge, i) => (
+            <div key={i} className="space-y-2 rounded-xl bg-background p-4">
+              <div className="grid gap-2 sm:grid-cols-[80px_1fr]">
+                <Field label="Ícone" value={badge.icon} onChange={(v) => updateBadge(i, { icon: v })} />
+                <Field label="Título" value={badge.title} onChange={(v) => updateBadge(i, { title: v })} />
+              </div>
+              <Field
+                label="Subtítulo"
+                value={badge.subtitle}
+                onChange={(v) => updateBadge(i, { subtitle: v })}
+              />
             </div>
-            <Field
-              label="Subtítulo"
-              value={badge.subtitle}
-              onChange={(v) => updateBadge(i, { subtitle: v })}
-            />
-          </div>
-        ))}
-      </Card>
-      <Card title="Textos institucionais">
-        <Field
-          label="Sobre a marca"
-          value={settings.footerAbout}
-          onChange={(v) => updateSettings({ footerAbout: v })}
-          textarea
-        />
-        <Field
-          label="Direitos autorais"
-          value={settings.copyright}
-          onChange={(v) => updateSettings({ copyright: v })}
-        />
-      </Card>
+          ))}
+        </Card>
+        <Card title="Textos institucionais">
+          <Field
+            label="Sobre a marca"
+            value={draft.footerAbout}
+            onChange={(v) => setDraft((d) => ({ ...d, footerAbout: v }))}
+            textarea
+          />
+          <Field
+            label="Direitos autorais"
+            value={draft.copyright}
+            onChange={(v) => setDraft((d) => ({ ...d, copyright: v }))}
+          />
+        </Card>
+      </div>
+      <SaveBar
+        dirty={dirty}
+        onReset={() => setDraft(settings)}
+        onSave={() => {
+          updateSettings(draft);
+          toast.success("Rodapé salvo ♡");
+        }}
+      />
     </div>
   );
 }
+
 
 function ProductsTab() {
   const { products, saveProduct, deleteProduct } = useStore();
