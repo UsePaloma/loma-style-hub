@@ -464,5 +464,17 @@ export function useStore() {
 export const brl = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Normaliza o telefone do responsável: aceita "(11) 99999-9999" e adiciona o DDI 55 quando faltar. */
+export const waNumber = (phone: string) => {
+  const d = phone.replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length <= 11) return `55${d}`;
+  return d;
+};
+
 export const waLink = (phone: string, message: string) =>
-  `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}`;
+  `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(message)}`;
+
+/** Link de compartilhamento: abre o WhatsApp da cliente para ela escolher com quem falar. */
+export const waShare = (message: string) =>
+  `https://wa.me/?text=${encodeURIComponent(message)}`;
