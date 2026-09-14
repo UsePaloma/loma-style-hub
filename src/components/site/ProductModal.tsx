@@ -79,11 +79,29 @@ export function ProductModal({
   const missing = Math.max(product.minPeople - product.currentPeople, 0);
   const progress = Math.min(100, (product.currentPeople / product.minPeople) * 100);
 
-  const inviteMessage = `Oi! Estou montando um grupo na USE LOMA para comprar "${product.name}" por ${brl(
-    product.groupPrice,
-  )} (em vez de ${brl(product.price)}). Grupo #${product.groupCode} · ${
-    missing > 0 ? `faltam ${missing}` : "cota completa"
-  }. Bora comigo? ♡`;
+  const economy = Math.max(product.price - product.groupPrice, 0);
+  const deadlineLabel = new Date(product.deadline).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+  const inviteMessage = [
+    `Oi, amiga! 💛 Achei uma peça linda na USE LOMA e quero te chamar pro grupo de compra:`,
+    "",
+    `✨ *${product.name}* (${product.category})`,
+    product.description,
+    "",
+    `Preço normal: ${brl(product.price)}`,
+    `👯 Preço no grupo: *${brl(product.groupPrice)}* — você economiza ${brl(economy)}!`,
+    `Grupo #${product.groupCode} · ${product.currentPeople} de ${product.minPeople} pessoas`,
+    missing > 0
+      ? missing === 1
+        ? `⏳ Falta só *1 pessoa* para liberar o preço em grupo — pode ser você!`
+        : `⏳ Faltam só *${missing} pessoas* para liberar o preço em grupo!`
+      : `🎉 A cota já está completa, dá tempo de entrar também!`,
+    `Prazo: até ${deadlineLabel}`,
+    "",
+    `Bora comigo? É só entrar no site da USE LOMA e escolher "Compra em Grupo" ♡`,
+  ].join("\n");
 
   const submitAuth = (e: React.FormEvent) => {
     e.preventDefault();
