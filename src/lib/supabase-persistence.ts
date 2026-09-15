@@ -19,8 +19,10 @@ async function readRemote() {
     console.error("Supabase persistence load failed", error);
     return null;
   }
-  if (data?.updated_at) lastServerUpdatedAt = Date.parse(data.updated_at);
-  return data?.data && typeof data.data === "object" ? data.data as Record<string, unknown> : null;
+  return {
+    data: data?.data && typeof data.data === "object" ? data.data as Record<string, unknown> : null,
+    updatedAt: data?.updated_at ? Date.parse(data.updated_at) : 0,
+  };
 }
 
 async function flushPending() {
@@ -29,17 +31,18 @@ async function flushPending() {
   const raw = pendingRaw;
   pendingRaw = null;
   try {
-    const data = JSON.parse(raw) as Record<string, unknown>;
+    const localData = JSON.parse(raw) as Record<string, unknown>;
     const remote = await readRemote();
-    const remoteIsNewer = Boolean(remote) && lastServerUpdatedAt > Date.now() - 1000;
-    if (remoteIsNewer && JSON.stringify(remote) !== JSON.stringify(data)) {
+    const remoteChangedElsewhere = remote?.data && remote.updatedAt > lastServerUpdatedAt;
+    if (remoteChangedElsewhere && JSON.stringify(remote.data) !== JSON.stringify(localData)) {
       suppressStorageSync = true;
-      window.localStorage.setItem(STORE_KEY, JSON.stringify(remote));
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(remote.data));
       suppressStorageSync = false;
+      lastServerUpdatedAt = remote.updatedAt;
     } else {
       const { data: saved, error } = await supabase
         .from("site_data")
-        .upsert({ id: 1, data, updated_at: new Date().toISOString() }, { onConflict: "id" })
+        .upsert({ id: 1, data: localData, updated_at: new Date().toISOString() }, { onConflict: "id" })
         .select("updated_at")
         .single();
       if (error) throw error;
@@ -66,10 +69,11 @@ export async function initializeSupabasePersistence() {
   const nativeSetItem = window.localStorage.setItem.bind(window.localStorage);
   const remote = await readRemote();
 
-  if (remote) {
+  if (remote?.data) {
     suppressStorageSync = true;
-    nativeSetItem(STORE_KEY, JSON.stringify(remote));
+    nativeSetItem(STORE_KEY, JSON.stringify(remote.data));
     suppressStorageSync = false;
+    lastServerUpdatedAt = remote.updatedAt;
   } else {
     const raw = window.localStorage.getItem(STORE_KEY);
     if (raw) persistStoreSnapshot(raw);
