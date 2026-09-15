@@ -1,95 +1,73 @@
 import { useEffect, useState } from "react";
 
+import { supabase } from "@/lib/supabase";
+
 export type MediaRef = {
   id: string;
   kind: "image" | "video";
   name: string;
 };
 
-const DB_NAME = "useloma-media";
-const STORE = "files";
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE);
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-  return openDb().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const request = run(db.transaction(STORE, mode).objectStore(STORE));
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      }),
-  );
-}
+const BUCKET = "product-media";
 
 export async function saveMedia(file: File): Promise<MediaRef> {
+  if (!supabase) throw new Error("Supabase não está configurado.");
   const id = `md${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-  await tx("readwrite", (s) => s.put(file, id));
+  const path = `products/${id}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    contentType: file.type,
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return {
-    id,
+    id: path,
     kind: file.type.startsWith("video") ? "video" : "image",
     name: file.name,
   };
 }
 
 export async function getMedia(id: string): Promise<Blob | undefined> {
+  if (!supabase) return undefined;
   try {
-    return await tx<Blob | undefined>("readonly", (s) => s.get(id));
+    const { data, error } = await supabase.storage.from(BUCKET).download(id);
+    return error ? undefined : data ?? undefined;
   } catch {
     return undefined;
   }
 }
 
 export async function deleteMedia(id: string): Promise<void> {
+  if (!supabase) return;
   try {
-    await tx("readwrite", (s) => s.delete(id));
+    await supabase.storage.from(BUCKET).remove([id]);
   } catch {
     /* ignore */
   }
 }
 
-/** Resolves stored media ids into temporary object URLs for rendering. */
+export function getMediaUrl(id: string): string {
+  if (!supabase) return "";
+  return supabase.storage.from(BUCKET).getPublicUrl(id).data.publicUrl;
+}
+
+/** Resolves stored Supabase media paths into public URLs for rendering. */
 export function useMediaUrls(media: MediaRef[] | undefined): Record<string, string> {
   const key = (media ?? []).map((m) => m.id).join(",");
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (typeof window === "undefined" || !key) {
+    if (!key) {
       setUrls({});
       return;
     }
-    let alive = true;
-    const created: string[] = [];
-    Promise.all(
-      key.split(",").map(async (id) => {
-        const blob = await getMedia(id);
-        return [id, blob] as const;
-      }),
-    ).then((entries) => {
-      if (!alive) return;
-      const map: Record<string, string> = {};
-      for (const [id, blob] of entries) {
-        if (!blob) continue;
-        const url = URL.createObjectURL(blob);
-        created.push(url);
-        map[id] = url;
-      }
-      setUrls(map);
+    const map: Record<string, string> = {};
+    key.split(",").forEach((id) => {
+      const url = getMediaUrl(id);
+      if (url) map[id] = url;
     });
-
-    return () => {
-      alive = false;
-      created.forEach((u) => URL.revokeObjectURL(u));
-    };
+    setUrls(map);
   }, [key]);
 
   return urls;
