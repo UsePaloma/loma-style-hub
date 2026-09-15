@@ -27,6 +27,10 @@ export type Product = {
   currentPeople: number;
   groupCode: string;
   deadline: string; // ISO date for the countdown
+  weightKg?: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
 };
 
 export type OrderStatus =
