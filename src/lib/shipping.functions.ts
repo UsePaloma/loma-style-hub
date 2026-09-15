@@ -13,11 +13,11 @@ export type ShippingResult =
 
 type Input = {
   cep: string;
-  weightKg?: number;
-  lengthCm?: number;
-  widthCm?: number;
-  heightCm?: number;
-  declaredValue?: number;
+  weightKg?: number | undefined;
+  lengthCm?: number | undefined;
+  widthCm?: number | undefined;
+  heightCm?: number | undefined;
+  declaredValue?: number | undefined;
 };
 
 const DEFAULT_SERVICES: Record<string, string> = {
