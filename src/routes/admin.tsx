@@ -50,6 +50,10 @@ const emptyProduct = (): Product => ({
   currentPeople: 0,
   groupCode: `GP${Math.floor(100 + Math.random() * 900)}`,
   deadline: new Date(Date.now() + 3 * 86400000).toISOString(),
+  weightKg: 0.5,
+  lengthCm: 30,
+  widthCm: 25,
+  heightCm: 10,
 });
 
 function AdminPage() {
