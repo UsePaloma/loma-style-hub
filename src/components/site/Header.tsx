@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Heart, Instagram, Lock, MessageCircle, User } from "lucide-react";
 
@@ -5,6 +6,28 @@ import { useStore, waLink } from "@/lib/store";
 
 export function Header() {
   const { settings } = useStore();
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY <= 0) {
+        setIsHidden(false);
+      } else if (currentScrollY > lastScrollY.current) {
+        setIsHidden(true);
+      } else if (currentScrollY < lastScrollY.current) {
+        setIsHidden(false);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const nav = [
     { label: "Novidades", href: "#novidades" },
@@ -14,7 +37,11 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-40">
+    <header
+      className={`sticky top-0 z-40 transition-transform duration-300 ease-in-out ${
+        isHidden ? "-translate-y-full" : "translate-y-0"
+      }`}
+    >
       <div className="bg-primary px-4 py-2 text-center text-xs tracking-wide text-primary-foreground sm:text-sm">
         {settings.topBar}
       </div>
