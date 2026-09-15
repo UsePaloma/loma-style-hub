@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ export function PasswordResetRequest() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const submit = async (event: React.FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) return;
 
@@ -115,7 +115,7 @@ export function PasswordRecovery() {
     };
   }, []);
 
-  const submit = async (event: React.FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) return;
     if (password.length < 8) {
@@ -160,7 +160,7 @@ export function PasswordRecovery() {
       <div className="mx-auto max-w-md rounded-2xl bg-card p-6 text-center shadow-soft">
         <h1 className="font-display text-3xl">Link inválido ou expirado</h1>
         <p className="mt-3 text-sm text-muted-foreground">Solicite uma nova recuperação de senha para continuar.</p>
-        <a href="/conta?reset=1" className="mt-6 inline-flex items-center text-sm text-primary hover:underline">
+        <a href="/conta?reset=request" className="mt-6 inline-flex items-center text-sm text-primary hover:underline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Solicitar novamente
         </a>
       </div>
