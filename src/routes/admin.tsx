@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteMedia, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
+import { deleteMedia, getMediaUrl, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
 import { ORDER_STATUSES, brl, useStore, type Customer, type OrderStatus, type Product } from "@/lib/store";
 
