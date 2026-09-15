@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Send, ShoppingBag, Sparkles, Users } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Loader2, MessageCircle, Send, ShoppingBag, Sparkles, Truck, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Countdown } from "@/components/site/Countdown";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMediaUrls } from "@/lib/media";
+import { calculateShipping, type ShippingOption } from "@/lib/shipping.functions";
 import { SIZES, brl, useStore, waLink, type Delivery, type Product } from "@/lib/store";
 
 type Mode = "individual" | "grupo";
@@ -42,7 +44,13 @@ export function ProductModal({
     size: "",
   });
   const [active, setActive] = useState(0);
+  const [cep, setCep] = useState("");
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [shipping, setShipping] = useState<ShippingOption | null>(null);
+  const [shippingError, setShippingError] = useState("");
+  const [loadingShipping, setLoadingShipping] = useState(false);
   const urls = useMediaUrls(product?.media);
+  const runShipping = useServerFn(calculateShipping);
 
   useEffect(() => {
     if (open) {
@@ -51,6 +59,10 @@ export function ProductModal({
       setActive(0);
       setAuthMode("login");
       setAuth({ name: "", email: "", phone: "", address: "", password: "" });
+      setCep("");
+      setShippingOptions([]);
+      setShipping(null);
+      setShippingError("");
       setForm({
         name: currentCustomer?.name ?? "",
         phone: currentCustomer?.phone ?? "",
@@ -75,7 +87,9 @@ export function ProductModal({
 
   if (!product) return null;
 
-  const total = mode === "grupo" ? product.groupPrice : product.price;
+  const subtotal = mode === "grupo" ? product.groupPrice : product.price;
+  const shippingCost = form.delivery === "Entrega" && shipping ? shipping.price : 0;
+  const total = subtotal + shippingCost;
   const missing = Math.max(product.minPeople - product.currentPeople, 0);
   const progress = Math.min(100, (product.currentPeople / product.minPeople) * 100);
 
@@ -137,6 +151,14 @@ export function ProductModal({
       status: mode === "grupo" && missing > 0 ? "Aguardando Cota do Grupo" : "Aguardando Pagamento",
       origin: channel,
       delivery: form.delivery,
+      ...(form.delivery === "Entrega" && shipping
+        ? {
+            cep,
+            shippingName: shipping.name,
+            shippingPrice: shipping.price,
+            shippingDays: shipping.days,
+          }
+        : {}),
       ...(form.size ? { size: form.size } : {}),
       ...(currentCustomer ? { customerId: currentCustomer.id } : {}),
     });
@@ -161,7 +183,17 @@ export function ProductModal({
       }
       if (form.size) lines.push(`Tamanho: ${form.size}`);
       lines.push(`Recebimento: ${form.delivery === "Entrega" ? "Envio/Entrega" : "Retirada"}`);
-      if (form.delivery === "Entrega") lines.push(`Endereço: ${form.address}`);
+      if (form.delivery === "Entrega") {
+        lines.push(`Endereço: ${form.address}`);
+        if (cep) lines.push(`CEP: ${cep}`);
+        if (shipping)
+          lines.push(
+            `Frete (${shipping.name}): ${brl(shipping.price)}${
+              shipping.days ? ` · ${shipping.days} dia(s) úteis` : ""
+            }`,
+          );
+        lines.push(`Subtotal: ${brl(subtotal)}`);
+      }
       lines.push(`Pagamento: ${form.payment}`);
       lines.push(`Total: ${brl(total)}`);
       lines.push("Por favor, confirme meu pedido ♡");
@@ -493,6 +525,90 @@ export function ProductModal({
                       value={form.address}
                       onChange={(e) => setForm({ ...form, address: e.target.value })}
                     />
+                  </div>
+                )}
+                {form.delivery === "Entrega" && (
+                  <div className="space-y-2 rounded-2xl bg-card p-3">
+                    <Label htmlFor="cep" className="flex items-center gap-2">
+                      <Truck className="h-4 w-4" /> Calcular frete pelos Correios
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="cep"
+                        inputMode="numeric"
+                        placeholder="CEP de entrega"
+                        value={cep}
+                        onChange={(e) => {
+                          setCep(e.target.value.replace(/\D/g, "").slice(0, 8));
+                          setShipping(null);
+                          setShippingOptions([]);
+                          setShippingError("");
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="rounded-xl"
+                        disabled={loadingShipping || cep.length !== 8}
+                        onClick={async () => {
+                          setLoadingShipping(true);
+                          setShippingError("");
+                          try {
+                            const res = await runShipping({
+                              data: {
+                                cep,
+                                weightKg: product.weightKg,
+                                lengthCm: product.lengthCm,
+                                widthCm: product.widthCm,
+                                heightCm: product.heightCm,
+                                declaredValue: subtotal,
+                              },
+                            });
+                            if (res.ok) {
+                              setShippingOptions(res.options);
+                              setShipping(res.options[0] ?? null);
+                            } else {
+                              setShippingOptions([]);
+                              setShipping(null);
+                              setShippingError(res.error);
+                            }
+                          } catch {
+                            setShippingError("Não foi possível calcular o frete agora.");
+                          } finally {
+                            setLoadingShipping(false);
+                          }
+                        }}
+                      >
+                        {loadingShipping ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Calcular"
+                        )}
+                      </Button>
+                    </div>
+                    {shippingOptions.length > 0 && (
+                      <div className="space-y-2">
+                        {shippingOptions.map((opt) => (
+                          <button
+                            key={opt.code}
+                            type="button"
+                            onClick={() => setShipping(opt)}
+                            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm transition-colors ${
+                              shipping?.code === opt.code ? "border-primary" : "border-border"
+                            }`}
+                          >
+                            <span>
+                              {opt.name}
+                              {opt.days ? ` · até ${opt.days} dia(s) úteis` : ""}
+                            </span>
+                            <span className="font-medium">{brl(opt.price)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {shippingError && (
+                      <p className="text-xs text-muted-foreground">{shippingError}</p>
+                    )}
                   </div>
                 )}
                 <div className="space-y-1.5">
