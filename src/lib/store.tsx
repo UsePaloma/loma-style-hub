@@ -74,6 +74,7 @@ export type Settings = {
   topBar: string;
   heroTitle: string;
   heroSlogan: string;
+  heroImage: string;
   whatsapp: string;
   instagram: string;
   instagramUrl: string;
@@ -99,6 +100,7 @@ const defaultSettings: Settings = {
   heroTitle: "Mais que moda, é você bem vestida ♡",
   heroSlogan:
     "Peças atemporais, tecidos leves e um jeito acolhedor de vestir. Escolha sua peça sozinha ou junte as amigas e economize na Compra em Grupo.",
+  heroImage: "",
   whatsapp: "5511999999999",
   instagram: "@useloma",
   instagramUrl: "https://instagram.com/useloma",
