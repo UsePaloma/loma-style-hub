@@ -27,16 +27,34 @@ const DEFAULT_SERVICES: Record<string, string> = {
 
 const onlyDigits = (v: string) => (v ?? "").replace(/\D/g, "");
 
+const parseCorreiosMoney = (value: string | number | undefined) => {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  if (raw.includes(",")) return Number(raw.replace(/\./g, "").replace(",", "."));
+  return Number(raw);
+};
+
 export const calculateShipping = createServerFn({ method: "POST" })
   .inputValidator((data: Input) => {
     const cep = onlyDigits(String(data?.cep ?? ""));
     if (cep.length !== 8) throw new Error("CEP inválido. Informe 8 dígitos.");
+
+    const weightKg = Number(data?.weightKg);
+    const lengthCm = Number(data?.lengthCm);
+    const widthCm = Number(data?.widthCm);
+    const heightCm = Number(data?.heightCm);
+
+    if (![weightKg, lengthCm, widthCm, heightCm].every((value) => Number.isFinite(value) && value > 0)) {
+      throw new Error("O produto precisa ter peso e dimensões válidos para calcular o frete.");
+    }
+
     return {
       cep,
-      weightKg: Number(data?.weightKg) > 0 ? Number(data.weightKg) : 0.5,
-      lengthCm: Number(data?.lengthCm) > 0 ? Number(data.lengthCm) : 20,
-      widthCm: Number(data?.widthCm) > 0 ? Number(data.widthCm) : 15,
-      heightCm: Number(data?.heightCm) > 0 ? Number(data.heightCm) : 5,
+      weightKg,
+      lengthCm,
+      widthCm,
+      heightCm,
       declaredValue: Number(data?.declaredValue) > 0 ? Number(data.declaredValue) : 0,
     };
   })
@@ -67,6 +85,7 @@ export const calculateShipping = createServerFn({ method: "POST" })
           method: "POST",
           headers: {
             "content-type": "application/json",
+            accept: "application/json",
             authorization: `Basic ${btoa(`${usuario}:${codigoAcesso}`)}`,
           },
           body: JSON.stringify({ numero: cartaoPostagem }),
@@ -76,7 +95,9 @@ export const calculateShipping = createServerFn({ method: "POST" })
         console.error("Correios token error", tokenRes.status, await tokenRes.text());
         return { ok: false, error: "Não foi possível autenticar nos Correios no momento." };
       }
-      const { token } = (await tokenRes.json()) as { token: string };
+      const tokenPayload = (await tokenRes.json()) as { token?: string };
+      const token = tokenPayload.token;
+      if (!token) return { ok: false, error: "Os Correios não retornaram um token válido." };
 
       const contrato = process.env["CORREIOS_CONTRATO"] ?? "";
       const dr = process.env["CORREIOS_DR"] ?? "";
@@ -91,12 +112,11 @@ export const calculateShipping = createServerFn({ method: "POST" })
         const priceParams = new URLSearchParams({
           cepOrigem,
           cepDestino: data.cep,
-          psObjeto: String(Math.round(data.weightKg * 1000)),
+          psObjeto: String(Math.max(1, Math.round(data.weightKg * 1000))),
           tpObjeto: "2",
           comprimento: String(data.lengthCm),
           largura: String(data.widthCm),
           altura: String(data.heightCm),
-          servicosAdicionais: "",
           vlDeclarado: data.declaredValue > 0 ? String(data.declaredValue) : "0",
         });
         if (contrato) priceParams.set("nuContrato", contrato);
@@ -104,11 +124,11 @@ export const calculateShipping = createServerFn({ method: "POST" })
 
         const [priceRes, dueRes] = await Promise.all([
           fetch(`https://api.correios.com.br/preco/v1/nacional/${code}?${priceParams}`, {
-            headers: { authorization: `Bearer ${token}` },
+            headers: { authorization: `Bearer ${token}`, accept: "application/json" },
           }),
           fetch(
             `https://api.correios.com.br/prazo/v1/nacional/${code}?cepOrigem=${cepOrigem}&cepDestino=${data.cep}`,
-            { headers: { authorization: `Bearer ${token}` } },
+            { headers: { authorization: `Bearer ${token}`, accept: "application/json" } },
           ),
         ]);
 
@@ -117,15 +137,17 @@ export const calculateShipping = createServerFn({ method: "POST" })
           continue;
         }
         const price = (await priceRes.json()) as {
-          pcFinal?: string;
+          pcFinal?: string | number;
           txErro?: string;
           coProduto?: string;
-          nuRequisicao?: string;
         };
-        if (price.txErro || !price.pcFinal) {
+        if (price.txErro || price.pcFinal === undefined) {
           console.error("Correios preco payload", code, price.txErro);
           continue;
         }
+        const finalPrice = parseCorreiosMoney(price.pcFinal);
+        if (!Number.isFinite(finalPrice) || finalPrice <= 0) continue;
+
         const due = dueRes.ok
           ? ((await dueRes.json()) as { prazoEntrega?: number; txErro?: string })
           : {};
@@ -133,7 +155,7 @@ export const calculateShipping = createServerFn({ method: "POST" })
         options.push({
           code,
           name: DEFAULT_SERVICES[code] ?? `Correios ${code}`,
-          price: Number(String(price.pcFinal).replace(/\./g, "").replace(",", ".")),
+          price: finalPrice,
           days: Number(due.prazoEntrega ?? 0),
         });
       }
