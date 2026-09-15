@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Footer } from "@/components/site/Footer";
 import { Header } from "@/components/site/Header";
+import { PasswordRecovery, PasswordResetRequest } from "@/components/site/PasswordRecovery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,9 @@ function Auth() {
   const [tab, setTab] = useState<"login" | "cadastro">("login");
   const [login, setLogin] = useState({ email: "", password: "" });
   const [signup, setSignup] = useState({ name: "", email: "", phone: "", address: "", password: "" });
+  const isPasswordRecovery = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("reset") === "1";
+
+  if (isPasswordRecovery) return <PasswordRecovery />;
 
   const submitLogin = () => {
     const email = login.email.trim().toLowerCase();
@@ -54,6 +58,7 @@ function Auth() {
     {tab === "login" ? <form className="animate-fade-up mt-6 space-y-4 rounded-2xl bg-card p-6 shadow-soft" onSubmit={(e) => { e.preventDefault(); submitLogin(); }}>
       <div className="space-y-1.5"><Label htmlFor="l-email">E-mail</Label><Input id="l-email" type="email" required value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} placeholder="seu@email.com" /></div>
       <div className="space-y-1.5"><Label htmlFor="l-senha">Senha</Label><Input id="l-senha" type="password" required value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} /></div>
+      <div className="flex justify-end"><a href="/conta?reset=1" className="text-xs text-muted-foreground hover:text-foreground hover:underline">Esqueci minha senha</a></div>
       <Button type="submit" className="w-full rounded-xl">Entrar</Button>
       <p className="text-center text-[11px] text-muted-foreground">Conta administrativa: use o e-mail <strong>admin@useloma.com</strong> e a senha definida no painel.</p>
     </form> : <form className="animate-fade-up mt-6 space-y-4 rounded-2xl bg-card p-6 shadow-soft" onSubmit={(e) => { e.preventDefault(); const res = registerCustomer(signup); if (res.ok) toast.success("Conta criada! Seja bem-vinda ♡"); else toast.error(res.error ?? "Não foi possível criar a conta."); }}>
