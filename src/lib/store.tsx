@@ -27,6 +27,10 @@ export type Product = {
   currentPeople: number;
   groupCode: string;
   deadline: string; // ISO date for the countdown
+  weightKg?: number | undefined;
+  lengthCm?: number | undefined;
+  widthCm?: number | undefined;
+  heightCm?: number | undefined;
 };
 
 export type OrderStatus =
@@ -65,6 +69,10 @@ export type Order = {
   customerId?: string;
   delivery?: Delivery;
   size?: string;
+  cep?: string;
+  shippingName?: string;
+  shippingPrice?: number;
+  shippingDays?: number;
 };
 
 export type Badge = { icon: string; title: string; subtitle: string };
