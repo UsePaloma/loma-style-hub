@@ -20,12 +20,7 @@ export async function saveMedia(file: File): Promise<MediaRef> {
     upsert: false,
   });
   if (error) throw error;
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return {
-    id: path,
-    kind: file.type.startsWith("video") ? "video" : "image",
-    name: file.name,
-  };
+  return { id: path, kind: file.type.startsWith("video") ? "video" : "image", name: file.name };
 }
 
 export async function getMedia(id: string): Promise<Blob | undefined> {
@@ -40,11 +35,7 @@ export async function getMedia(id: string): Promise<Blob | undefined> {
 
 export async function deleteMedia(id: string): Promise<void> {
   if (!supabase) return;
-  try {
-    await supabase.storage.from(BUCKET).remove([id]);
-  } catch {
-    /* ignore */
-  }
+  try { await supabase.storage.from(BUCKET).remove([id]); } catch { /* ignore */ }
 }
 
 export function getMediaUrl(id: string): string {
@@ -52,16 +43,12 @@ export function getMediaUrl(id: string): string {
   return supabase.storage.from(BUCKET).getPublicUrl(id).data.publicUrl;
 }
 
-/** Resolves stored Supabase media paths into public URLs for rendering. */
 export function useMediaUrls(media: MediaRef[] | undefined): Record<string, string> {
   const key = (media ?? []).map((m) => m.id).join(",");
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!key) {
-      setUrls({});
-      return;
-    }
+    if (!key) { setUrls({}); return; }
     const map: Record<string, string> = {};
     key.split(",").forEach((id) => {
       const url = getMediaUrl(id);
