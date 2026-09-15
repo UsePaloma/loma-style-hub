@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteMedia, getMediaUrl, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
+import { deleteMedia, getSharableMediaUrl, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
 import { ORDER_STATUSES, brl, useStore, type Customer, type OrderStatus, type Product } from "@/lib/store";
 
@@ -130,7 +130,7 @@ function HeroImageField({ value, onChange }: { value: string; onChange: (url: st
     <Input type="file" accept="image/*" disabled={uploading} onChange={async (e) => {
       const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
       setUploading(true);
-      try { const ref = await saveMedia(file); const url = getMediaUrl(ref.id); if (!url) throw new Error("URL indisponível"); onChange(url); toast.success("Imagem enviada. Clique em salvar para publicar."); }
+      try { const ref = await saveMedia(file); const url = await getSharableMediaUrl(ref.id); if (!url) throw new Error("URL indisponível"); onChange(url); toast.success("Imagem enviada. Clique em salvar para publicar."); }
       catch (error) { console.error(error); toast.error("Não foi possível enviar a imagem."); }
       finally { setUploading(false); }
     }} />
