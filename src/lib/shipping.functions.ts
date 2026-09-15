@@ -23,6 +23,13 @@ type Input = {
   declaredValue?: number | undefined;
 };
 
+const DEFAULT_PACKAGE = {
+  weightKg: 0.5,
+  lengthCm: 30,
+  widthCm: 25,
+  heightCm: 10,
+};
+
 const DEFAULT_CORREIOS_SERVICES: Record<string, string> = {
   "03220": "SEDEX",
   "03298": "PAC",
@@ -224,10 +231,10 @@ export const calculateShipping = createServerFn({ method: "POST" })
   .inputValidator((data: Input) => {
     const cep = onlyDigits(String(data?.cep ?? ""));
     if (cep.length !== 8) throw new Error("CEP inválido. Informe 8 dígitos.");
-    const weightKg = Number(data?.weightKg);
-    const lengthCm = Number(data?.lengthCm);
-    const widthCm = Number(data?.widthCm);
-    const heightCm = Number(data?.heightCm);
+    const weightKg = Number(data?.weightKg ?? DEFAULT_PACKAGE.weightKg);
+    const lengthCm = Number(data?.lengthCm ?? DEFAULT_PACKAGE.lengthCm);
+    const widthCm = Number(data?.widthCm ?? DEFAULT_PACKAGE.widthCm);
+    const heightCm = Number(data?.heightCm ?? DEFAULT_PACKAGE.heightCm);
     if (![weightKg, lengthCm, widthCm, heightCm].every((value) => Number.isFinite(value) && value > 0)) {
       throw new Error("O produto precisa ter peso e dimensões válidos para calcular o frete.");
     }
