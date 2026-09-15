@@ -2,9 +2,7 @@ import { supabase } from "@/lib/supabase";
 
 const STORE_KEY = "useloma-store-v1";
 const SESSION_KEY = "useloma-customer-session";
-
 let initialized = false;
-let originalSetItem: Storage["setItem"] | null = null;
 
 async function saveStore(raw: string) {
   if (!supabase) return;
@@ -19,7 +17,7 @@ async function saveStore(raw: string) {
 export async function initializeSupabasePersistence() {
   if (initialized || typeof window === "undefined" || !supabase) return;
   initialized = true;
-  originalSetItem = window.localStorage.setItem.bind(window.localStorage);
+  const nativeSetItem = window.localStorage.setItem.bind(window.localStorage);
 
   const { data, error } = await supabase
     .from("site_data")
@@ -30,7 +28,7 @@ export async function initializeSupabasePersistence() {
   if (error) {
     console.error("Supabase persistence load failed", error);
   } else if (data?.data && typeof data.data === "object") {
-    originalSetItem(STORE_KEY, JSON.stringify(data.data));
+    nativeSetItem(STORE_KEY, JSON.stringify(data.data));
   }
 
   const raw = window.localStorage.getItem(STORE_KEY);
