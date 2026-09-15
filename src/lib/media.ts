@@ -43,6 +43,12 @@ export function getMediaUrl(id: string): string {
   return supabase.storage.from(BUCKET).getPublicUrl(id).data.publicUrl;
 }
 
+export async function getSharableMediaUrl(id: string): Promise<string> {
+  if (!supabase) return "";
+  const { data } = await supabase.storage.from(BUCKET).createSignedUrl(id, 60 * 60 * 24 * 365 * 5);
+  return data?.signedUrl ?? getMediaUrl(id);
+}
+
 export function useMediaUrls(media: MediaRef[] | undefined): Record<string, string> {
   const key = (media ?? []).map((m) => m.id).join(",");
   const [urls, setUrls] = useState<Record<string, string>>({});
