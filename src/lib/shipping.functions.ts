@@ -30,6 +30,10 @@ const DEFAULT_PACKAGE = {
   heightCm: 10,
 };
 
+// Origem padrão das postagens: Centro de Ribeirão Pires/SP.
+// Se o CEP real de postagem estiver configurado por provedor, ele tem prioridade.
+const DEFAULT_ORIGIN_CEP = "09400-110";
+
 const DEFAULT_CORREIOS_SERVICES: Record<string, string> = {
   "03220": "SEDEX",
   "03298": "PAC",
@@ -54,7 +58,7 @@ async function quoteCorreios(data: Input & { cep: string; weightKg: number; leng
   const usuario = process.env["CORREIOS_USUARIO"];
   const codigoAcesso = process.env["CORREIOS_CODIGO_ACESSO"];
   const cartaoPostagem = process.env["CORREIOS_CARTAO_POSTAGEM"];
-  const cepOrigem = onlyDigits(process.env["CORREIOS_CEP_ORIGEM"] ?? "");
+  const cepOrigem = onlyDigits(process.env["CORREIOS_CEP_ORIGEM"] ?? DEFAULT_ORIGIN_CEP);
   if (!usuario || !codigoAcesso || !cartaoPostagem || cepOrigem.length !== 8) return [];
 
   const tokenRes = await fetch("https://api.correios.com.br/token/v1/autentica/cartaopostagem", {
@@ -120,7 +124,7 @@ async function quoteCorreios(data: Input & { cep: string; weightKg: number; leng
 
 async function quoteMelhorEnvio(data: Input & { cep: string; weightKg: number; lengthCm: number; widthCm: number; heightCm: number; declaredValue: number }) {
   const token = process.env["MELHOR_ENVIO_TOKEN"];
-  const cepOrigem = onlyDigits(process.env["MELHOR_ENVIO_CEP_ORIGEM"] ?? process.env["CORREIOS_CEP_ORIGEM"] ?? "");
+  const cepOrigem = onlyDigits(process.env["MELHOR_ENVIO_CEP_ORIGEM"] ?? process.env["CORREIOS_CEP_ORIGEM"] ?? DEFAULT_ORIGIN_CEP);
   if (!token || cepOrigem.length !== 8) return [];
 
   const endpoint = process.env["MELHOR_ENVIO_API_URL"] || "https://www.melhorenvio.com.br/api/v2/me/shipment/calculate";
@@ -178,7 +182,7 @@ async function quoteMelhorEnvio(data: Input & { cep: string; weightKg: number; l
 
 async function quoteFrenet(data: Input & { cep: string; weightKg: number; lengthCm: number; widthCm: number; heightCm: number; declaredValue: number }) {
   const token = process.env["FRENET_TOKEN"];
-  const cepOrigem = onlyDigits(process.env["FRENET_CEP_ORIGEM"] ?? process.env["CORREIOS_CEP_ORIGEM"] ?? "");
+  const cepOrigem = onlyDigits(process.env["FRENET_CEP_ORIGEM"] ?? process.env["CORREIOS_CEP_ORIGEM"] ?? DEFAULT_ORIGIN_CEP);
   if (!token || cepOrigem.length !== 8) return [];
 
   const endpoint = process.env["FRENET_API_URL"] || "https://api.frenet.com.br/shipping/quote";
