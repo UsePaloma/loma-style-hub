@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart, Instagram, Lock, MessageCircle, User } from "lucide-react";
+import { Heart, Instagram, MessageCircle, User } from "lucide-react";
 
 import { useStore, waLink } from "@/lib/store";
 
@@ -92,14 +92,7 @@ export function Header() {
             >
               <User className="h-3.5 w-3.5" /> Área do Cliente
             </Link>
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-2 rounded-full border border-primary/25 px-4 py-2 text-xs font-medium tracking-wide text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-            >
-              <Lock className="h-3.5 w-3.5" /> Área Admin
-            </Link>
           </div>
-
         </div>
       </div>
     </header>
