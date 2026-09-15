@@ -124,9 +124,24 @@ function DashboardTab() {
 function Metric({ title, value, icon }: { title: string; value: string | number; icon: ReactNode }) { return <div className="rounded-3xl border border-border/70 bg-card/90 p-5 shadow-soft"><div className="flex items-center justify-between"><p className="text-xs uppercase tracking-wider text-muted-foreground">{title}</p><div className="text-primary">{icon}</div></div><p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p></div>; }
 function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-2xl bg-background p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></div>; }
 
+function HeroImageField({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  return <div className="space-y-2"><Label>Imagem do banner (página inicial)</Label>
+    <Input type="file" accept="image/*" disabled={uploading} onChange={async (e) => {
+      const file = e.target.files?.[0]; e.target.value = ""; if (!file) return;
+      setUploading(true);
+      try { const ref = await saveMedia(file); const url = getMediaUrl(ref.id); if (!url) throw new Error("URL indisponível"); onChange(url); toast.success("Imagem enviada. Clique em salvar para publicar."); }
+      catch (error) { console.error(error); toast.error("Não foi possível enviar a imagem."); }
+      finally { setUploading(false); }
+    }} />
+    {value ? <div className="space-y-2"><img src={value} alt="Pré-visualização do banner" className="h-40 w-full rounded-2xl object-cover" /><Button type="button" variant="ghost" size="sm" className="rounded-lg" onClick={() => onChange("")}>Usar imagem padrão</Button></div>
+      : <p className="text-xs text-muted-foreground">Nenhuma imagem personalizada. A imagem padrão do site será usada.</p>}
+  </div>;
+}
+
 function SiteTab() {
   const { settings, updateSettings } = useStore(); const [draft, setDraft] = useState(settings); useEffect(() => setDraft(settings), [settings]); const dirty = JSON.stringify(draft) !== JSON.stringify(settings); const set = (patch: Partial<typeof settings>) => setDraft((d) => ({ ...d, ...patch }));
-  return <div className="space-y-6"><div className="grid gap-6 lg:grid-cols-2"><Card title="Página inicial" icon={LayoutDashboard}><Field label="Barra superior" value={draft.topBar} onChange={(v) => set({ topBar: v })} textarea /><Field label="Título principal" value={draft.heroTitle} onChange={(v) => set({ heroTitle: v })} /><Field label="Slogan" value={draft.heroSlogan} onChange={(v) => set({ heroSlogan: v })} textarea /></Card><Card title="Canais e administração" icon={Settings2}><Field label="WhatsApp" value={draft.whatsapp} onChange={(v) => set({ whatsapp: v })} /><Field label="Instagram" value={draft.instagram} onChange={(v) => set({ instagram: v })} /><Field label="URL do Instagram" value={draft.instagramUrl} onChange={(v) => set({ instagramUrl: v })} /><Field label="Senha administrativa" value={draft.adminPassword} onChange={(v) => set({ adminPassword: v })} /><p className="text-xs text-muted-foreground">Acesso atual: admin@useloma.com.</p></Card></div><SaveBar dirty={dirty} onReset={() => setDraft(settings)} onSave={() => { updateSettings(draft); toast.success("Configurações salvas ♡"); }} /></div>;
+  return <div className="space-y-6"><div className="grid gap-6 lg:grid-cols-2"><Card title="Página inicial" icon={LayoutDashboard}><Field label="Barra superior" value={draft.topBar} onChange={(v) => set({ topBar: v })} textarea /><Field label="Título principal" value={draft.heroTitle} onChange={(v) => set({ heroTitle: v })} /><Field label="Slogan" value={draft.heroSlogan} onChange={(v) => set({ heroSlogan: v })} textarea /><HeroImageField value={draft.heroImage ?? ""} onChange={(heroImage) => set({ heroImage })} /></Card><Card title="Canais e administração" icon={Settings2}><Field label="WhatsApp" value={draft.whatsapp} onChange={(v) => set({ whatsapp: v })} /><Field label="Instagram" value={draft.instagram} onChange={(v) => set({ instagram: v })} /><Field label="URL do Instagram" value={draft.instagramUrl} onChange={(v) => set({ instagramUrl: v })} /><Field label="Senha administrativa" value={draft.adminPassword} onChange={(v) => set({ adminPassword: v })} /><p className="text-xs text-muted-foreground">Acesso atual: admin@useloma.com.</p></Card></div><SaveBar dirty={dirty} onReset={() => setDraft(settings)} onSave={() => { updateSettings(draft); toast.success("Configurações salvas ♡"); }} /></div>;
 }
 
 function FooterTab() {
