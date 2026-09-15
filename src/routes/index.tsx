@@ -54,7 +54,7 @@ function Index() {
           <div className="flex flex-wrap gap-3"><a href="#novidades"><Button size="lg" className="rounded-full px-7">Ver novidades</Button></a><a href={settings.instagramUrl} target="_blank" rel="noreferrer"><Button size="lg" variant="outline" className="rounded-full px-7"><Instagram className="mr-2 h-4 w-4" /> Siga nosso Instagram {settings.instagram}</Button></a></div>
           <a href={waLink(settings.whatsapp, "Olá! Quero pedir uma peça da USE LOMA ♡")} target="_blank" rel="noreferrer" className="block max-w-lg rounded-2xl bg-primary p-4 text-primary-foreground shadow-soft transition-transform hover:-translate-y-0.5"><span className="flex items-center gap-2 text-sm font-medium"><MessageCircle className="h-4 w-4" /> Pedidos pelo WhatsApp</span><span className="mt-1 block text-xs opacity-80">Me chama para pedir e separar sua peça ♡</span></a>
         </div>
-        <img src={heroImage} alt="Modelo vestindo peça da coleção USE LOMA" width={1200} height={1500} className="animate-fade-up h-[32rem] w-full rounded-2xl object-cover shadow-soft" />
+        <img src={settings.heroImage || heroImage} alt="Modelo vestindo peça da coleção USE LOMA" width={1200} height={1500} className="animate-fade-up h-[32rem] w-full rounded-2xl object-cover shadow-soft" />
       </div>
     </section>
 
