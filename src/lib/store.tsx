@@ -69,6 +69,10 @@ export type Order = {
   customerId?: string;
   delivery?: Delivery;
   size?: string;
+  cep?: string;
+  shippingName?: string;
+  shippingPrice?: number;
+  shippingDays?: number;
 };
 
 export type Badge = { icon: string; title: string; subtitle: string };
