@@ -74,6 +74,7 @@ export type Settings = {
   topBar: string;
   heroTitle: string;
   heroSlogan: string;
+  heroImage: string;
   whatsapp: string;
   instagram: string;
   instagramUrl: string;
