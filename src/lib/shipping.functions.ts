@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
+declare const process: { env: Record<string, string | undefined> };
+
 export type ShippingOption = {
   code: string;
   name: string;
