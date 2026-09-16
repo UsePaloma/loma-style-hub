@@ -24,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { deleteMedia, getSharableMediaUrl, saveMedia, useMediaUrls, type MediaRef } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
-import { ORDER_STATUSES, brl, useStore, type Customer, type OrderStatus, type Product } from "@/lib/store";
+import { ORDER_STATUSES, brl, useStore, type OrderStatus, type Product } from "@/lib/store";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -163,40 +163,66 @@ function MediaField({ media, onChange }: { media?: MediaRef[]; onChange: (media:
 
 function OrdersTab() { const { orders, products, updateOrderStatus, deleteOrder } = useStore(); return <div className="space-y-6"><Card title="Pedidos" icon={ShoppingBag}><div className="overflow-x-auto"><table className="w-full min-w-[780px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="pb-3">Cliente</th><th className="pb-3">Produto</th><th className="pb-3">Origem</th><th className="pb-3">Total</th><th className="pb-3">Status</th><th /></tr></thead><tbody>{orders.map((o) => <tr key={o.id} className="border-t border-border"><td className="py-3"><p className="font-medium">{o.customer}</p><p className="text-xs text-muted-foreground">{o.phone}</p></td><td className="py-3">{o.productName}</td><td className="py-3">{o.origin}</td><td className="py-3">{brl(o.total)}</td><td className="py-3"><select value={o.status} onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)} className="rounded-lg border border-border bg-background px-2 py-1.5 text-xs">{ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></td><td className="py-3 text-right"><Button variant="ghost" size="icon" onClick={() => deleteOrder(o.id)}><Trash2 className="h-4 w-4" /></Button></td></tr>)}</tbody></table></div></Card><Card title="Grupos ativos" icon={Users}><div className="grid gap-3 md:grid-cols-2">{products.map((p) => <div key={p.id} className="rounded-2xl bg-background p-4"><div className="flex justify-between gap-3"><p className="font-medium">#{p.groupCode} · {p.name}</p><span className="text-xs text-muted-foreground">{p.currentPeople}/{p.minPeople}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-card"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, (p.currentPeople / Math.max(1, p.minPeople)) * 100)}%` }} /></div></div>)}</div></Card></div>; }
 
-function CustomersTab() {
-  const { customers } = useStore();
-  const [items, setItems] = useState<Customer[]>(customers);
-  const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<Customer | null>(null);
-  useEffect(() => setItems(customers), [customers]);
-  const filtered = useMemo(() => items.filter((c) => `${c.name} ${c.email} ${c.phone}`.toLowerCase().includes(query.toLowerCase())), [items, query]);
-  async function saveCustomer(customer: Customer) {
-    if (!supabase) { toast.error("Supabase não está configurado."); return; }
-    const { data: row, error } = await supabase.from("site_data").select("data").eq("id", 1).single();
-    if (error) { toast.error("Não foi possível carregar os dados."); return; }
-    const data = (row?.data ?? {}) as Record<string, unknown>;
-    const customersData = Array.isArray(data["customers"]) ? data["customers"] as Customer[] : [];
-    const next = customersData.some((c) => c.id === customer.id) ? customersData.map((c) => c.id === customer.id ? customer : c) : [...customersData, customer];
-    const result = await supabase.from("site_data").upsert({ id: 1, data: { ...data, customers: next }, updated_at: new Date().toISOString() });
-    if (result.error) { toast.error("Falha ao salvar cliente."); return; }
-    setItems(next); setEditing(null); localStorage.setItem("useloma-store-v1", JSON.stringify({ ...data, customers: next })); toast.success("Conta atualizada ♡");
-  }
-  async function removeCustomer(id: string) {
-    if (!supabase || !confirm("Excluir esta conta de cliente?")) return;
-    const { data: row, error } = await supabase.from("site_data").select("data").eq("id", 1).single();
-    if (error) { toast.error("Não foi possível carregar os dados."); return; }
-    const data = (row?.data ?? {}) as Record<string, unknown>;
-    const next = (Array.isArray(data["customers"]) ? data["customers"] as Customer[] : []).filter((c) => c.id !== id);
-    const result = await supabase.from("site_data").upsert({ id: 1, data: { ...data, customers: next }, updated_at: new Date().toISOString() });
-    if (result.error) { toast.error("Falha ao excluir conta."); return; }
-    setItems(next); localStorage.setItem("useloma-store-v1", JSON.stringify({ ...data, customers: next })); toast.success("Conta excluída");
-  }
-  return <div className="space-y-6"><Card title="Contas de clientes" icon={Users}><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar por nome, e-mail ou telefone" value={query} onChange={(e) => setQuery(e.target.value)} /></div><Button variant="outline" className="rounded-xl" onClick={() => setEditing({ id: `CL${Date.now().toString(36)}`, name: "", email: "", phone: "", address: "", passwordHash: "" })}><Plus className="mr-2 h-4 w-4" />Nova conta</Button></div><div className="space-y-3">{filtered.map((customer) => <div key={customer.id} className="flex flex-col gap-3 rounded-2xl bg-background p-4 md:flex-row md:items-center"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><UserRound className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-medium">{customer.name || "Conta sem nome"}</p><p className="truncate text-xs text-muted-foreground">{customer.email} · {customer.phone}</p><p className="truncate text-xs text-muted-foreground">{customer.address || "Sem endereço"}</p></div><div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setEditing(customer)}>Editar</Button><Button variant="ghost" size="icon" onClick={() => void removeCustomer(customer.id)}><Trash2 className="h-4 w-4" /></Button></div></div>)}{filtered.length === 0 && <p className="rounded-2xl bg-background p-6 text-center text-sm text-muted-foreground">Nenhuma conta encontrada.</p>}</div></Card>{editing && <CustomerEditor customer={editing} onCancel={() => setEditing(null)} onSave={saveCustomer} />}</div>;
-}
+type CustomerRow = {
+  user_id: string;
+  name: string;
+  phone: string;
+  address: string;
+  orderCount: number;
+};
 
-function CustomerEditor({ customer, onCancel, onSave }: { customer: Customer; onCancel: () => void; onSave: (customer: Customer) => void }) {
-  const [draft, setDraft] = useState(customer); const set = (patch: Partial<Customer>) => setDraft((d) => ({ ...d, ...patch }));
-  return <Card title="Editar conta" icon={UserRound}><div className="grid gap-4 md:grid-cols-2"><Field label="Nome" value={draft.name} onChange={(v) => set({ name: v })} /><Field label="E-mail" value={draft.email} onChange={(v) => set({ email: v })} /><Field label="Telefone" value={draft.phone} onChange={(v) => set({ phone: v })} /><Field label="Endereço" value={draft.address} onChange={(v) => set({ address: v })} /></div><div className="flex gap-2"><Button className="rounded-xl" onClick={() => onSave({ ...draft, email: draft.email.trim().toLowerCase() })}><Save className="mr-2 h-4 w-4" />Salvar conta</Button><Button variant="ghost" className="rounded-xl" onClick={onCancel}>Cancelar</Button></div></Card>;
+function CustomersTab() {
+  const [items, setItems] = useState<CustomerRow[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("user_id, customer_name, phone, address, created_at")
+        .not("user_id", "is", null)
+        .order("created_at", { ascending: false });
+      if (!active) return;
+      if (error) {
+        console.error("Erro ao carregar clientes:", error);
+        toast.error("Não foi possível carregar os clientes.");
+        setItems([]);
+        setLoading(false);
+        return;
+      }
+      const byUser = new Map<string, CustomerRow>();
+      for (const row of (data ?? []) as Array<{ user_id: string; customer_name: string; phone: string; address: string }>) {
+        const existing = byUser.get(row.user_id);
+        if (existing) {
+          existing.orderCount += 1;
+          if (!existing.name && row.customer_name) existing.name = row.customer_name;
+          if (!existing.phone && row.phone) existing.phone = row.phone;
+          if (!existing.address && row.address) existing.address = row.address;
+        } else {
+          byUser.set(row.user_id, {
+            user_id: row.user_id,
+            name: row.customer_name,
+            phone: row.phone,
+            address: row.address,
+            orderCount: 1,
+          });
+        }
+      }
+      setItems([...byUser.values()]);
+      setLoading(false);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const filtered = useMemo(
+    () => items.filter((c) => `${c.name} ${c.phone}`.toLowerCase().includes(query.toLowerCase())),
+    [items, query],
+  );
+
+  return <div className="space-y-6"><Card title="Contas de clientes" icon={Users}><div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar por nome ou telefone" value={query} onChange={(e) => setQuery(e.target.value)} /></div></div><p className="text-xs text-muted-foreground">Lista gerada a partir dos pedidos vinculados a contas autenticadas (orders.user_id).</p><div className="space-y-3">{loading ? <p className="rounded-2xl bg-background p-6 text-center text-sm text-muted-foreground">Carregando clientes…</p> : filtered.map((customer) => <div key={customer.user_id} className="flex flex-col gap-3 rounded-2xl bg-background p-4 md:flex-row md:items-center"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><UserRound className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-medium">{customer.name || "Conta sem nome"}</p><p className="truncate text-xs text-muted-foreground">{customer.phone || "Sem telefone"}</p><p className="truncate text-xs text-muted-foreground">{customer.address || "Sem endereço"}</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">{customer.orderCount} pedido{customer.orderCount === 1 ? "" : "s"}</span></div>)}{!loading && filtered.length === 0 && <p className="rounded-2xl bg-background p-6 text-center text-sm text-muted-foreground">Nenhuma conta encontrada.</p>}</div></Card></div>;
 }
 
 function DataTab() {
