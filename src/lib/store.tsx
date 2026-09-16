@@ -316,14 +316,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addOrder = useCallback(
     (order: Omit<Order, "id" | "createdAt">) => {
-      const phone = digits(order.phone);
-      const matched =
-        order.customerId ??
-        (phone.length >= 8
-          ? customers.find((c) => digits(c.phone) === phone)?.id
-          : undefined) ??
-        sessionId ??
-        undefined;
+      // Vincula o pedido apenas à conta logada (customerId explícito ou sessão
+      // atual). Não casamos mais por telefone: qualquer pessoa que soubesse o
+      // telefone de outra veria os pedidos dela.
+      const matched = order.customerId ?? sessionId ?? undefined;
       const full: Order = {
         ...order,
         ...(matched ? { customerId: matched } : {}),
@@ -351,12 +347,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const myOrders = useMemo(() => {
     if (!currentCustomer) return [];
-    const phone = digits(currentCustomer.phone);
-    return orders.filter(
-      (o) =>
-        o.customerId === currentCustomer.id ||
-        (!o.customerId && phone.length >= 8 && digits(o.phone) === phone),
-    );
+    // Só mostramos pedidos vinculados à conta pelo id. Casar por telefone
+    // permitia ver pedidos alheios apenas sabendo o número.
+    return orders.filter((o) => o.customerId === currentCustomer.id);
   }, [orders, currentCustomer]);
 
   const registerCustomer = useCallback<StoreValue["registerCustomer"]>(
