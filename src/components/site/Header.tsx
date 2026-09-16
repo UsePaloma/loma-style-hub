@@ -21,6 +21,7 @@ export function Header() {
         setMenuOpen(false);
       } else if (currentScrollY < lastScrollY.current) {
         setIsHidden(false);
+        setMenuOpen(false);
       }
 
       lastScrollY.current = currentScrollY;
