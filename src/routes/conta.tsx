@@ -135,7 +135,7 @@ function Auth() {
 
   const submitSignup = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: signup.email.trim().toLowerCase(),
       password: signup.password,
       options: {
@@ -146,13 +146,27 @@ function Auth() {
         },
       },
     });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       toast.error(error.message || "Erro ao criar conta.");
-    } else {
-      toast.success("Conta criada! Seja bem-vinda ♡");
+      return;
     }
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: data.user.id,
+        full_name: signup.name.trim(),
+        phone: signup.phone.trim(),
+        address: signup.address.trim(),
+      });
+      if (profileError) {
+        console.error("Erro ao criar perfil:", profileError);
+      }
+    }
+
+    setLoading(false);
+    toast.success("Conta criada! Seja bem-vinda ♡");
   };
 
   return (
@@ -295,6 +309,21 @@ function Painel({ user }: { user: User }) {
 
   const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Cliente";
 
+  const fetchProfile = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("address")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (!error && data?.address) {
+      setAddress(data.address);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user.id]);
+
   const fetchOrders = async () => {
     setLoadingOrders(true);
     const { data, error } = await supabase
@@ -318,9 +347,13 @@ function Painel({ user }: { user: User }) {
   const handleUpdateAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdatingAddress(true);
-    const { error } = await supabase.auth.updateUser({
-      data: { address: address.trim() },
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id,
+      address: address.trim(),
     });
+    if (!error) {
+      await supabase.auth.updateUser({ data: { address: address.trim() } });
+    }
     setUpdatingAddress(false);
 
     if (error) {
